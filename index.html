@@ -1,0 +1,306 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>5 Dragon Fury Metrics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one narrow-ink header, KPI strip, then stacked analysis sections on a 12-col grid that collapses to one column.
+   Each dragon keeps its spec colour everywhere it appears. */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --surface2:#eceee9; --line:#d9dcd5; --fg:#1b2420; --muted:#5d6862;
+  --accent:#0f6b5c; --accent-soft:#d5ebe5;
+  --good:#1f7a45; --warn:#a56a00; --bad:#b3261e; --good-bg:#dcf1e3; --warn-bg:#f8ebcc; --bad-bg:#f8dcd9;
+  --earth:#a8742a; --wood:#3d8b4a; --tide:#2f6fb5; --fire:#d2402c; --metal:#b8921a;
+  --seg1:#6b7f78; --seg2:#0f6b5c; --seg3:#c28a12;
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-head:'Space Grotesk','Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18211e; --surface2:#1f2a26; --line:#2d3b36; --fg:#e8eee9; --muted:#9aa9a1;
+  --accent:#4fc7ae; --accent-soft:#1c3a33;
+  --good:#6fd39a; --warn:#e3b04b; --bad:#ff8a80; --good-bg:#17382a; --warn-bg:#3b2f12; --bad-bg:#43211e;
+  --earth:#d79a4a; --wood:#68c177; --tide:#6aa7ea; --fire:#ff7058; --metal:#e6c04a;
+  --seg1:#7f9690; --seg2:#4fc7ae; --seg3:#e3b04b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18211e; --surface2:#1f2a26; --line:#2d3b36; --fg:#e8eee9; --muted:#9aa9a1;
+  --accent:#4fc7ae; --accent-soft:#1c3a33;
+  --good:#6fd39a; --warn:#e3b04b; --bad:#ff8a80; --good-bg:#17382a; --warn-bg:#3b2f12; --bad-bg:#43211e;
+  --earth:#d79a4a; --wood:#68c177; --tide:#6aa7ea; --fire:#ff7058; --metal:#e6c04a;
+  --seg1:#7f9690; --seg2:#4fc7ae; --seg3:#e3b04b; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--font-head);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(26px,4vw,36px);font-weight:700}
+h2{font-size:18px;font-weight:600}
+h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+header{display:flex;flex-direction:column;gap:8px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:13px}
+.banner{background:var(--warn-bg);color:var(--fg);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;font-size:13px}
+.banner b{color:var(--warn)}
+
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi .v{font-family:var(--font-head);font-size:28px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kpi .s{font-size:12px;color:var(--muted)}
+
+section{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+section>header{gap:2px}
+section .sub{color:var(--muted);font-size:13px}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+
+/* stacked RTP bar */
+.stack{position:relative;height:36px;border-radius:4px;overflow:visible;background:var(--surface2);margin-top:14px}
+.stack .seg{position:absolute;top:0;bottom:0}
+.stack .seg:first-child{border-radius:4px 0 0 4px}
+.stack .tgt{position:absolute;top:-10px;bottom:-6px;width:2px;background:var(--fg)}
+.stack .tgt span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--fg)}
+.legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.legend div{display:flex;gap:8px;align-items:flex-start;min-width:0}
+.sw{width:10px;height:10px;border-radius:2px;flex:none;margin-top:5px}
+.legend b{display:block;font-variant-numeric:tabular-nums;font-size:16px;font-family:var(--font-head)}
+.legend span.t{color:var(--muted);font-size:12px}
+
+/* horizontal bar rows */
+.rows{display:flex;flex-direction:column;gap:7px}
+.row{display:grid;grid-template-columns:minmax(96px,150px) minmax(0,1fr) auto;gap:10px;align-items:center}
+.row .name{font-size:13px;min-width:0;overflow-wrap:anywhere}
+.row .bar{height:14px;background:var(--surface2);border-radius:3px;position:relative;min-width:0}
+.row .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--accent);min-width:2px}
+.row .val{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;min-width:96px}
+.row .val b{color:var(--fg);font-weight:600}
+#combos .row{grid-template-columns:minmax(120px,260px) minmax(0,1fr) auto}
+.axis{font-size:11px;color:var(--muted)}
+
+/* tables */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.pill.good{background:var(--good-bg);color:var(--good)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.dots{display:inline-flex;gap:3px;margin-right:8px;vertical-align:middle}
+.dots i{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* controls */
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg-btns{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+button{font:inherit;font-size:13px;background:var(--surface);color:var(--fg);border:0;border-right:1px solid var(--line);padding:6px 12px;cursor:pointer}
+button:last-child{border-right:0}
+button[aria-pressed="true"]{background:var(--accent);color:var(--bg);font-weight:600}
+button:hover:not([aria-pressed="true"]){background:var(--surface2)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:13px}
+.notes b{color:var(--fg);font-weight:600}
+
+@media (max-width:860px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis .kpi:last-child{grid-column:span 2}
+  .cols,.cols3{grid-template-columns:minmax(0,1fr)}
+  .legend{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  section{padding:14px}
+  .row,#combos .row{grid-template-columns:minmax(0,1fr) auto}
+  .row .bar{grid-column:1 / -1;order:3}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>5 Dragon Fury maths</h1>
+    <div class="meta num" id="meta"></div>
+  </header>
+  <div class="banner" style="display: none;"><b>Placeholder maths.</b> The spec leaves the paytable and weights to the maths team, so every number here comes from tuned placeholder values in the simulator, not a final design.</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <header><h2>Where the RTP comes from</h2><p class="sub">Return per unit wagered, split by source. The line marks the 96% target.</p></header>
+    <div id="rtpstack"></div>
+  </section>
+
+  <section>
+    <header><h2>Win distribution</h2><p class="sub">Share of paid spins by total win, including any bonus round. Bar length is on a log scale so the rare tiers stay visible.</p></header>
+    <div class="rows" id="buckets"></div>
+  </section>
+
+  <section>
+    <header><h2>Feature frequency against the spec</h2><p class="sub">Measured over the full run. </p></header>
+    <div class="tw"><table id="feat"></table></div>
+  </section>
+
+  <section>
+    <header><h2>Dragons in the base game</h2><p class="sub">A dragon wakes on about 1 in 12 spins. Wake counts, Fire's reel count and Metal's ladder all come from the same run.</p></header>
+    <div class="cols3">
+      <div class="col"><h3>Wake rate per dragon</h3><div class="rows" id="wake"></div></div>
+      <div class="col"><h3>Fire: reels burned</h3><div class="rows" id="fire"></div></div>
+      <div class="col"><h3>Metal: multiplier</h3><div class="rows" id="metal"></div></div>
+    </div>
+    <div class="col"><h3>Dragons per wake</h3><div class="rows" id="dcount"></div></div>
+  </section>
+
+  <section>
+    <header><h2>Every dragon combination</h2><p class="sub">Each set is forced on every spin and resolved in order (Earth, Wood, Tide, Fire, Metal). Base game values exclude any bonus. Free spin values are a full 8-spin round with that loadout.</p></header>
+    <div class="ctl">
+      <div class="seg-btns" role="group" aria-label="Mode">
+        <button type="button" id="m-base" aria-pressed="true">Base game</button>
+        <button type="button" id="m-fs" aria-pressed="false">Free spins</button>
+      </div>
+      <div class="seg-btns" role="group" aria-label="Dragons in set" id="sizes"></div>
+    </div>
+    <div class="rows" id="combos"></div>
+    <p class="axis" id="comboAxis"></p>
+  </section>
+
+  <section>
+    <header><h2>Bonus buy</h2><p class="sub">Average value of a purchased round (no trigger spin) and the price that would return 96%.</p></header>
+    <div class="tw"><table id="buy"></table></div>
+  </section>
+
+  <section>
+    <header><h2>Ante bet</h2><p class="sub">A higher stake in exchange for more scatter chances.</p></header>
+    <div class="kpis" id="ante" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
+  </section>
+
+  <section>
+    <header><h2>Rules the simulator enforces</h2></header>
+    <ul class="notes">
+      <li><b>Scatters:</b> at most one per reel. Exactly 3 scatters anywhere turn wild (near miss) before dragons resolve and the spin pays.</li>
+      <li><b>Trigger spin:</b> a spin with 4 or more scatters has no dragons.</li>
+      <li><b>Free spins:</b> always 8 spins, no retrigger, and no scatters land during the round.</li>
+      <li><b>Dragon order:</b> Earth, Wood, Tide, Fire, pay, then Metal multiplies the total.</li>
+      <li><b>Cap:</b> a paid spin or bonus round stops at 8,888x.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const D = {
+"spins":30000000,"seed":3,"rtp":0.95939,"rtpSE":0.00225,"rtpBaseNoDragon":0.43907,"rtpBaseDragons":0.31930,"rtpFreeSpins":0.20102,"hitFreq":0.59792,"sd":12.3246,"maxWinSeen":8888.0,"maxWinHits":12,"nearMissOneIn":60.21,"bonusOneIn":175.42,"tierOneIn":[216.9,1010.7,9927.2],"fsRoundAvg":35.263,"fsSpinsPerRound":8.00,"baseDragonOneIn":11.82,"baseDragonCount":[2031508,380894,126658],"dragonOneIn":[32.7,51.7,51.7,75.9,42.9],"fireReels":[510211,198786,45542,6960,803],"metalX":[2,3,5,10,25,50,100],"metalCount":[516604,300596,150431,64380,26997,6371,800],"buckets":[{"name":"0x","count":12062352},{"name":"<1x","count":12736833},{"name":"1-5x","count":4420632},{"name":"5-15x","count":551691},{"name":"15-30x (Big)","count":130490},{"name":"30-50x (Super)","count":50489},{"name":"50-200x (Mega)","count":41540},{"name":"200-1000x (Epic)","count":5503},{"name":"1000-8888x","count":458},{"name":"8888x (MAX)","count":12}],
+"ante":{"spins":15000000,"cost":1.25,"scatterX":1.95,"rtp":0.95039,"rtpSE":0.00279,"bonusOneIn":89.67},
+"buy":[{"tier":"Jade(4)","rounds":150000,"avg":26.960,"se":0.180,"price96":28.08,"specPrice":77,"rtpAtSpecPrice":0.35013,"over100OneIn":37.77,"max":8888.0,"capHits":1},{"tier":"Gold(5)","rounds":150000,"avg":54.713,"se":0.370,"price96":56.99,"specPrice":174,"rtpAtSpecPrice":0.31444,"over100OneIn":9.48,"max":8888.0,"capHits":8},{"tier":"Imperial(6)","rounds":150000,"avg":223.235,"se":1.222,"price96":232.54,"specPrice":350,"rtpAtSpecPrice":0.63781,"over100OneIn":1.82,"max":8888.0,"capHits":106}],
+"baseCombos":[{"name":"Earth","size":1,"mask":1,"avg":1.4711,"sd":2.377,"max":99.9},{"name":"Wood","size":1,"mask":2,"avg":1.4762,"sd":4.417,"max":256.4},{"name":"Earth+Wood","size":2,"mask":3,"avg":2.7777,"sd":6.517,"max":488.6},{"name":"Tide","size":1,"mask":4,"avg":2.4965,"sd":3.998,"max":105.1},{"name":"Earth+Tide","size":2,"mask":5,"avg":7.7200,"sd":10.572,"max":455.8},{"name":"Wood+Tide","size":2,"mask":6,"avg":3.3419,"sd":6.495,"max":274.7},{"name":"Earth+Wood+Tide","size":3,"mask":7,"avg":10.0799,"sd":14.259,"max":633.3},{"name":"Fire","size":1,"mask":8,"avg":2.8517,"sd":15.093,"max":2095.3},{"name":"Earth+Fire","size":2,"mask":9,"avg":12.5905,"sd":75.576,"max":8888.0},{"name":"Wood+Fire","size":2,"mask":10,"avg":4.6600,"sd":18.582,"max":2200.5},{"name":"Earth+Wood+Fire","size":3,"mask":11,"avg":17.6631,"sd":83.886,"max":8888.0},{"name":"Tide+Fire","size":2,"mask":12,"avg":7.9563,"sd":20.927,"max":2006.3},{"name":"Earth+Tide+Fire","size":3,"mask":13,"avg":38.6946,"sd":102.870,"max":8376.3},{"name":"Wood+Tide+Fire","size":3,"mask":14,"avg":9.6559,"sd":22.858,"max":2162.2},{"name":"Earth+Wood+Tide+Fire","size":4,"mask":15,"avg":46.4550,"sd":109.350,"max":8888.0},{"name":"Metal","size":1,"mask":16,"avg":1.9877,"sd":8.234,"max":1421.7},{"name":"Earth+Metal","size":2,"mask":17,"avg":6.0834,"sd":19.476,"max":1787.8},{"name":"Wood+Metal","size":2,"mask":18,"avg":6.0997,"sd":32.710,"max":5696.6},{"name":"Earth+Wood+Metal","size":3,"mask":19,"avg":11.4541,"sd":48.469,"max":8888.0},{"name":"Tide+Metal","size":2,"mask":20,"avg":10.3351,"sd":31.996,"max":3291.4},{"name":"Earth+Tide+Metal","size":3,"mask":21,"avg":31.7395,"sd":88.687,"max":8888.0},{"name":"Wood+Tide+Metal","size":3,"mask":22,"avg":13.9831,"sd":50.929,"max":5696.6},{"name":"Earth+Wood+Tide+Metal","size":4,"mask":23,"avg":41.6269,"sd":116.569,"max":8888.0},{"name":"Fire+Metal","size":2,"mask":24,"avg":11.7561,"sd":86.145,"max":8888.0},{"name":"Earth+Fire+Metal","size":3,"mask":25,"avg":48.8485,"sd":273.239,"max":8888.0},{"name":"Wood+Fire+Metal","size":3,"mask":26,"avg":19.2663,"sd":105.409,"max":8888.0},{"name":"Earth+Wood+Fire+Metal","size":4,"mask":27,"avg":67.7555,"sd":300.846,"max":8888.0},{"name":"Tide+Fire+Metal","size":3,"mask":28,"avg":32.9982,"sd":135.211,"max":8888.0},{"name":"Earth+Tide+Fire+Metal","size":4,"mask":29,"avg":154.0311,"sd":480.428,"max":8888.0},{"name":"Wood+Tide+Fire+Metal","size":4,"mask":30,"avg":39.7375,"sd":151.854,"max":8888.0},{"name":"Earth+Wood+Tide+Fire+Metal","size":5,"mask":31,"avg":183.5909,"sd":515.776,"max":8888.0}],
+"fsCombos":[{"name":"Earth","size":1,"mask":1,"avg":11.504,"sd":6.118,"over100OneIn":60000.00},{"name":"Wood","size":1,"mask":2,"avg":11.568,"sd":12.173,"over100OneIn":517.24},{"name":"Earth+Wood","size":2,"mask":3,"avg":14.155,"sd":12.274,"over100OneIn":517.24},{"name":"Tide","size":1,"mask":4,"avg":20.105,"sd":11.137,"over100OneIn":5454.55},{"name":"Earth+Tide","size":2,"mask":5,"avg":27.520,"sd":18.137,"over100OneIn":139.21},{"name":"Wood+Tide","size":2,"mask":6,"avg":18.688,"sd":14.072,"over100OneIn":372.67},{"name":"Earth+Wood+Tide","size":3,"mask":7,"avg":31.748,"sd":23.168,"over100OneIn":54.35},{"name":"Fire","size":1,"mask":8,"avg":22.911,"sd":44.936,"over100OneIn":40.90},{"name":"Earth+Fire","size":2,"mask":9,"avg":38.385,"sd":106.710,"over100OneIn":16.51},{"name":"Wood+Fire","size":2,"mask":10,"avg":22.170,"sd":36.773,"over100OneIn":49.34},{"name":"Earth+Wood+Fire","size":3,"mask":11,"avg":45.150,"sd":111.787,"over100OneIn":12.30},{"name":"Tide+Fire","size":2,"mask":12,"avg":32.588,"sd":42.512,"over100OneIn":27.64},{"name":"Earth+Tide+Fire","size":3,"mask":13,"avg":76.859,"sd":121.736,"over100OneIn":5.08},{"name":"Wood+Tide+Fire","size":3,"mask":14,"avg":35.260,"sd":41.848,"over100OneIn":24.14},{"name":"Earth+Wood+Tide+Fire","size":4,"mask":15,"avg":89.185,"sd":153.514,"over100OneIn":4.10},{"name":"Metal","size":1,"mask":16,"avg":15.181,"sd":19.582,"over100OneIn":128.21},{"name":"Earth+Metal","size":2,"mask":17,"avg":21.734,"sd":27.244,"over100OneIn":62.43},{"name":"Wood+Metal","size":2,"mask":18,"avg":21.805,"sd":47.501,"over100OneIn":43.38},{"name":"Earth+Wood+Metal","size":3,"mask":19,"avg":32.824,"sd":59.969,"over100OneIn":22.12},{"name":"Tide+Metal","size":2,"mask":20,"avg":34.525,"sd":52.188,"over100OneIn":22.39},{"name":"Earth+Tide+Metal","size":3,"mask":21,"avg":65.307,"sd":118.044,"over100OneIn":6.77},{"name":"Wood+Tide+Metal","size":3,"mask":22,"avg":42.601,"sd":74.743,"over100OneIn":14.35},{"name":"Earth+Wood+Tide+Metal","size":4,"mask":23,"avg":80.179,"sd":131.639,"over100OneIn":4.89},{"name":"Fire+Metal","size":2,"mask":24,"avg":37.033,"sd":126.170,"over100OneIn":16.42},{"name":"Earth+Fire+Metal","size":3,"mask":25,"avg":88.032,"sd":291.802,"over100OneIn":5.64},{"name":"Wood+Fire+Metal","size":3,"mask":26,"avg":50.220,"sd":139.078,"over100OneIn":10.36},{"name":"Earth+Wood+Fire+Metal","size":4,"mask":27,"avg":109.822,"sd":308.187,"over100OneIn":4.08},{"name":"Tide+Fire+Metal","size":3,"mask":28,"avg":74.563,"sd":172.699,"over100OneIn":5.82},{"name":"Earth+Tide+Fire+Metal","size":4,"mask":29,"avg":197.561,"sd":454.622,"over100OneIn":2.12},{"name":"Wood+Tide+Fire+Metal","size":4,"mask":30,"avg":86.905,"sd":184.166,"over100OneIn":4.60},{"name":"Earth+Wood+Tide+Fire+Metal","size":5,"mask":31,"avg":225.743,"sd":488.773,"over100OneIn":1.81}]
+};
+const DR = ['Earth','Wood','Tide','Fire','Metal'];
+const DC = ['var(--earth)','var(--wood)','var(--tide)','var(--fire)','var(--metal)'];
+const $ = id => document.getElementById(id);
+const fmt = (n,d=0) => Number(n).toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = (x,d=2) => (x*100).toFixed(d)+'%';
+const oneIn = x => '1 in '+fmt(x, x<100?1:0);
+const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function row(name,w,val,color){
+  return `<div class="row"><div class="name">${name}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,w)).toFixed(2)}%;${color?`background:${color}`:''}"></i></div><div class="val">${val}</div></div>`;
+}
+const logw = (v,min,max) => v<=0?0:100*(Math.log10(v)-Math.log10(min))/(Math.log10(max)-Math.log10(min));
+const dots = name => `<span class="dots">${name.split('+').map(n=>`<i style="background:${DC[DR.indexOf(n)]}"></i>`).join('')}</span>`;
+const pill = (cls,t) => `<span class="pill ${cls}">${t}</span>`;
+
+// header + KPIs
+$('meta').innerHTML = `<span>${fmt(D.spins)} spins</span><span>seed ${D.seed}</span><span>6x4 ways, 4,096 (46,656 with Earth)</span><span>max win 8,888x</span>`;
+const maxHitOneIn = D.maxWinHits ? D.spins/D.maxWinHits : 0;
+$('kpis').innerHTML = [
+  ['RTP', pct(D.rtp), `+/- ${pct(D.rtpSE)} (1 s.e.), target 96%`],
+  ['Hit frequency', pct(D.hitFreq,1), oneIn(1/D.hitFreq)+' spins'],
+  ['Volatility (SD)', fmt(D.sd,1), 'per-spin std deviation, x bet'],
+  ['Bonus frequency', oneIn(D.bonusOneIn), 'target 150 to 200 spins'],
+  ['Max win hit', D.maxWinHits ? oneIn(maxHitOneIn) : 'Not hit', `${fmt(D.maxWinHits)} times at 8,888x`]
+].map(k=>`<div class="kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
+
+// RTP stack
+(function(){
+  const parts=[['Base game, no dragon',D.rtpBaseNoDragon,'var(--seg1)'],['Base game, with dragons',D.rtpBaseDragons,'var(--seg2)'],['Free spins',D.rtpFreeSpins,'var(--seg3)']];
+  const scaleMax = Math.max(1.1, D.rtp*1.08);
+  let x=0, segs='';
+  parts.forEach(p=>{const w=p[1]/scaleMax*100; segs+=`<div class="seg" style="left:${x}%;width:${w}%;background:${p[2]}"></div>`; x+=w;});
+  const t = 0.96/scaleMax*100;
+  $('rtpstack').innerHTML = `<div class="stack" role="img" aria-label="RTP ${pct(D.rtp)} composed of ${parts.map(p=>p[0]+' '+pct(p[1])).join(', ')}">${segs}<div class="tgt" style="left:${t}%"><span>96% target</span></div></div>
+  <div class="legend">${parts.map(p=>`<div><i class="sw" style="background:${p[2]}"></i><span><b>${pct(p[1])}</b><span class="t">${p[0]}</span></span></div>`).join('')}</div>`;
+})();
+
+// buckets
+(function(){
+  const counts=D.buckets.map(b=>b.count), min=1, max=Math.max(...counts);
+  $('buckets').innerHTML = D.buckets.map(b=>{
+    const share=b.count/D.spins;
+    return row(esc(b.name), logw(b.count,min,max), `<b>${pct(share, share<0.001?4:2)}</b> &middot; ${b.count?oneIn(D.spins/b.count):'never'}`);
+  }).join('');
+})();
+
+// feature table
+(function(){
+  const spec=(v,lo,hi)=>v>=lo&&v<=hi?pill('good','on target'):(v>=lo*0.7&&v<=hi*1.3?pill('warn','close'):pill('bad','off'));
+  const rows=[
+    ['Any bonus trigger', oneIn(D.bonusOneIn), '1 in 150 to 200', spec(D.bonusOneIn,150,200)],
+    ['Jade Spins (4 scatters)', oneIn(D.tierOneIn[0]), 'not specified', ''],
+    ['Gold Spins (5 scatters)', oneIn(D.tierOneIn[1]), 'about 1 in 1,000', spec(D.tierOneIn[1],900,1100)],
+    ['Imperial Spins (6 scatters)', oneIn(D.tierOneIn[2]), 'about 1 in 10,000', spec(D.tierOneIn[2],9000,11000)],
+    ['Near-miss wilds (exactly 3)', oneIn(D.nearMissOneIn), 'not specified', ''],
+    ['Dragon wakes in base game', oneIn(D.baseDragonOneIn), '1 in 10 to 12', spec(D.baseDragonOneIn,10,12)],
+    ['Free spin round, average', fmt(D.fsRoundAvg,1)+'x', 'not specified', ''],
+  ];
+  $('feat').innerHTML = `<thead><tr><th>Feature</th><th>Measured</th><th>Spec target</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="muted">${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody>`;
+})();
+
+// dragons
+(function(){
+  const mx=Math.max(...D.dragonOneIn.map(v=>1/v));
+  $('wake').innerHTML = DR.map((n,i)=>row(`${dots(n)}${n}`, (1/D.dragonOneIn[i])/mx*100, `<b>${oneIn(D.dragonOneIn[i])}</b>`, DC[i])).join('');
+  const ft=D.fireReels.reduce((a,b)=>a+b,0);
+  $('fire').innerHTML = D.fireReels.map((c,i)=>row(`${i+1} reel${i?'s':''}`, logw(c,1,Math.max(...D.fireReels)), `<b>${pct(c/ft,1)}</b>`, 'var(--fire)')).join('');
+  const mt=D.metalCount.reduce((a,b)=>a+b,0);
+  $('metal').innerHTML = D.metalX.map((x,i)=>row(`x${x}`, logw(D.metalCount[i],1,Math.max(...D.metalCount)), `<b>${pct(D.metalCount[i]/mt,1)}</b>`, 'var(--metal)')).join('');
+  const ct=D.baseDragonCount.reduce((a,b)=>a+b,0), tg=[80,15,5];
+  $('dcount').innerHTML = D.baseDragonCount.map((c,i)=>row(`${i+1} dragon${i?'s':''}`, c/ct*100, `<b>${pct(c/ct,1)}</b> &middot; target ${tg[i]}%`, 'var(--accent)')).join('');
+})();
+
+// combos
+let mode='base', size=0;
+function renderCombos(){
+  const data = mode==='base'?D.baseCombos:D.fsCombos;
+  const list = data.filter(c=>!size||c.size===size).sort((a,b)=>b.avg-a.avg);
+  const all = data.map(c=>c.avg), mn=Math.min(...all), mx=Math.max(...all);
+  $('combos').innerHTML = list.map(c=>{
+    const extra = mode==='base' ? `SD ${fmt(c.sd,1)}` : `100x+ ${oneIn(c.over100OneIn)}`;
+    return row(`${dots(c.name)}${c.name.replace(/\+/g,' + ')}`, logw(c.avg,mn,mx)*0.96+4, `<b>${fmt(c.avg, c.avg<10?2:1)}x</b> &middot; ${extra}`, DC[DR.indexOf(c.name.split('+')[0])]);
+  }).join('');
+  $('comboAxis').textContent = (mode==='base'?'Average win per forced spin, x bet.':'Average value of one 8-spin free spin round, x bet.')+' Bar length is on a log scale; colour is the first dragon in resolution order.';
+  $('m-base').setAttribute('aria-pressed',mode==='base'); $('m-fs').setAttribute('aria-pressed',mode==='fs');
+  [...$('sizes').children].forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.s===size)));
+}
+$('sizes').innerHTML = [[0,'All'],[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5']].map(s=>`<button type="button" data-s="${s[0]}" aria-pressed="${s[0]===0}">${s[1]}</button>`).join('');
+$('sizes').addEventListener('click',e=>{const b=e.target.closest('button'); if(b){size=+b.dataset.s; renderCombos();}});
+$('m-base').onclick=()=>{mode='base';renderCombos()}; $('m-fs').onclick=()=>{mode='fs';renderCombos()};
+renderCombos();
+
+// buy
+$('buy').innerHTML = `<thead><tr><th>Tier</th><th>Avg value</th><th>Price at 96%</th><th>Spec price</th><th>RTP at spec price</th><th>100x+ in</th><th>8,888x hits</th></tr></thead><tbody>`+
+  D.buy.map(b=>{
+    const r=b.rtpAtSpecPrice, cls=r>1.0?'bad':(r<0.9?'warn':'good');
+    return `<tr><td>${esc(b.tier)}</td><td>${fmt(b.avg,1)}x</td><td>${fmt(b.price96,0)}x</td><td>${fmt(b.specPrice)}x</td><td>${pill(cls,pct(r,1))}</td><td>${oneIn(b.over100OneIn)} rounds</td><td>${fmt(b.capHits)} of ${fmt(b.rounds)}</td></tr>`;
+  }).join('')+'</tbody>';
+
+// ante
+$('ante').innerHTML = [
+  ['Bet cost', D.ante.cost.toFixed(2)+'x', 'of base bet'],
+  ['Scatter odds', D.ante.scatterX.toFixed(1)+'x', 'chance of 3 to 6 scatters'],
+  ['RTP', pct(D.ante.rtp), `+/- ${pct(D.ante.rtpSE)} (1 s.e.)`],
+  ['Bonus frequency', oneIn(D.ante.bonusOneIn), 'vs '+oneIn(D.bonusOneIn)+' without ante']
+].map(k=>`<div class="kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
+</script>
+
+</body></html>
